@@ -169,7 +169,7 @@
       settings: {
         wmfVersion: 'latest'
         configuration: {
-          url: 'https://raw.githubusercontent.com/SMBrook/StackHCILab/main/DSC/configurehost.zip'
+          url: 'https://github.com/SMBrook/StackHCILab/blob/main/DSC/configurehost.zip?raw=true'
           script: 'configurehost.ps1'
           function: 'HCIHyperVHost'
         }

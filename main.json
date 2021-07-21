@@ -1,0 +1,264 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.4.1.14562",
+      "templateHash": "7221837736378250799"
+    }
+  },
+  "parameters": {
+    "virtualMachineName": {
+      "type": "string",
+      "defaultValue": "HCIHNV001"
+    },
+    "adminusername": {
+      "type": "string",
+      "defaultValue": "hciadmin"
+    },
+    "vnetname": {
+      "type": "string",
+      "defaultValue": "HCILab-VNET"
+    },
+    "vnetaddressspace": {
+      "type": "string",
+      "defaultValue": "10.88.0.0/16"
+    },
+    "subnetaddressspace": {
+      "type": "string",
+      "defaultValue": "10.88.0.0/24"
+    },
+    "adminpassword": {
+      "type": "secureString"
+    }
+  },
+  "functions": [],
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('vnetname')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnetaddressspace')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "HciSubnet",
+            "properties": {
+              "addressPrefix": "[parameters('subnetaddressspace')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2021-02-01",
+      "name": "[format('{0}-nsg', parameters('virtualMachineName'))]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "RDP",
+            "properties": {
+              "priority": 300,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "3389"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-02-01",
+      "name": "[format('{0}-Publicip', parameters('virtualMachineName'))]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic"
+      },
+      "sku": {
+        "name": "Basic"
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2021-02-01",
+      "name": "[format('{0}-Nic1', parameters('virtualMachineName'))]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vnetname'), 'HciSubnet')]"
+              },
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', format('{0}-Publicip', parameters('virtualMachineName')))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-nsg', parameters('virtualMachineName')))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-nsg', parameters('virtualMachineName')))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-Publicip', parameters('virtualMachineName')))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetname'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "dataDiskResources_name",
+        "count": "[length(range(0, 7))]"
+      },
+      "type": "Microsoft.Compute/disks",
+      "apiVersion": "2020-12-01",
+      "name": "[format('{0}_DataDisk_{1}', parameters('virtualMachineName'), range(0, 7)[copyIndex()])]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "StandardSSD_LRS"
+      },
+      "properties": {
+        "diskSizeGB": 256,
+        "creationData": {
+          "createOption": "Empty"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2020-12-01",
+      "name": "[parameters('virtualMachineName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D32s_v3"
+        },
+        "storageProfile": {
+          "copy": [
+            {
+              "name": "dataDisks",
+              "count": "[length(range(0, 7))]",
+              "input": {
+                "name": "[format('{0}_DataDisk_{1}', parameters('virtualMachineName'), range(0, 7)[copyIndex('dataDisks')])]",
+                "lun": "[range(0, 7)[copyIndex('dataDisks')]]",
+                "createOption": "Attach",
+                "caching": "ReadOnly",
+                "writeAcceleratorEnabled": false,
+                "managedDisk": {
+                  "id": "[resourceId('Microsoft.Compute/disks', format('{0}_DataDisk_{1}', parameters('virtualMachineName'), range(0, 7)[copyIndex('dataDisks')]))]"
+                }
+              }
+            }
+          ],
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2019-Datacenter",
+            "version": "latest"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-Nic1', parameters('virtualMachineName')))]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[parameters('virtualMachineName')]",
+          "adminUsername": "[parameters('adminusername')]",
+          "adminPassword": "[parameters('adminpassword')]",
+          "windowsConfiguration": {
+            "enableAutomaticUpdates": true,
+            "provisionVMAgent": true,
+            "patchSettings": {
+              "patchMode": "AutomaticByOS"
+            }
+          }
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-Nic1', parameters('virtualMachineName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2021-03-01",
+      "name": "[format('{0}/{1}', parameters('virtualMachineName'), 'ConfigureAsHciHost')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publisher": "Microsoft.Powershell",
+        "type": "DSC",
+        "typeHandlerVersion": "2.83.1.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "wmfVersion": "latest",
+          "configuration": {
+            "url": "https://github.com/SMBrook/StackHCILab/blob/main/DSC/configurehost.zip?raw=true",
+            "script": "configurehost.ps1",
+            "function": "HCIHyperVHost"
+          },
+          "configurationArguments": {
+            "customRdpPort": 3389
+          }
+        },
+        "protectedSettings": {
+          "configurationArguments": {
+            "adminCreds": {
+              "UserName": "[parameters('adminusername')]",
+              "Password": "[parameters('adminpassword')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DevTestLab/schedules",
+      "apiVersion": "2018-09-15",
+      "name": "[format('shutdown-computevm-{0}', parameters('virtualMachineName'))]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "status": "Enabled",
+        "taskType": "ComputeVmShutdownTask",
+        "dailyRecurrence": {
+          "time": "20:00"
+        },
+        "timeZoneId": "UTC",
+        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]"
+      ]
+    }
+  ]
+}

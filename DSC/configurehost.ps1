@@ -8,8 +8,6 @@ configuration HCIHyperVHost
 
      )
 
-     Import-DscResource -ModuleName xHyper-V
-
      node $NodeName {
 
            WindowsFeature 'Hyper-V' {
@@ -39,19 +37,6 @@ configuration HCIHyperVHost
                 DestinationPath = "$($env:SystemDrive)\VMs"
 
            }
-
-           xVMSwitch LabSwitch {
-
-                DependsOn = '[WindowsFeature]Hyper-V'
-
-                Name = 'HCISwitch'
-
-                Ensure = 'Present'
-
-                Type = 'Internal'
-
-}
-
 }
 
 }
