@@ -86,7 +86,7 @@
   }
 
   resource dataDiskResources_name 'Microsoft.Compute/disks@2020-12-01' = [for i in range(0,7): {
-    name: 'ASHCIHost001_DataDisk_${i}'
+    name: '${virtualMachineName}_DataDisk_${i}'
     location: resourceGroup().location
     sku: {
       name:'StandardSSD_LRS'
@@ -120,7 +120,7 @@
           version: 'latest'
         }
         dataDisks: [for i in range(0,7): {
-          name: 'ASHCIHost001_DataDisk_${i}'
+          name: '${virtualMachineName}_DataDisk_${i}'
           lun: '${i}'
           createOption: 'Attach'
           caching: 'ReadOnly'
@@ -157,7 +157,7 @@
     }
   }
 
-  resource virtualMachineName_ConfigureAsHciHost 'Microsoft.Compute/virtualMachines/extensions@2020-06-01' = {
+  resource virtualMachineName_ConfigureAsHciHost 'Microsoft.Compute/virtualMachines/extensions@2021-03-01' = {
     parent: virtualMachineName_resource
     name: 'ConfigureAsHciHost'
     location: resourceGroup().location
@@ -170,18 +170,18 @@
         wmfVersion: 'latest'
         configuration: {
           url: dscUri
-          script: 'ashcihost.ps1'
-          function: 'ASHCIHost'
+          script: 'configurehost.ps1'
+          function: 'HCIHyperVHost'
         }
         configurationArguments: {
-          customRdpPort: customRdpPort
+          customRdpPort: 3389
         }
       }
       protectedSettings: {
         configurationArguments: {
           adminCreds: {
-            UserName: adminUsername
-            Password: adminPassword
+            UserName: adminusername
+            Password: adminpassword
           }
         }
       }
