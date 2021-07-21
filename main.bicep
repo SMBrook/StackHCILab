@@ -126,7 +126,7 @@
           caching: 'ReadOnly'
           writeAcceleratorEnabled: false
           managedDisk:{
-            id: resourceId('Microsoft.Compute/disks', 'ASHCIHost001_DataDisk_${i}')
+            id: resourceId('Microsoft.Compute/disks', '${virtualMachineName}_DataDisk_${i}')
          }
         }]
       }
@@ -169,7 +169,7 @@
       settings: {
         wmfVersion: 'latest'
         configuration: {
-          url: dscUri
+          url: 'https://raw.githubusercontent.com/SMBrook/StackHCILab/main/DSC/configurehost.zip'
           script: 'configurehost.ps1'
           function: 'HCIHyperVHost'
         }
