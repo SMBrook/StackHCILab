@@ -173,20 +173,17 @@
           script: 'configurehost.ps1'
           function: 'HCIHyperVHost'
         }
-        configurationArguments: {
-          customRdpPort: 3389
-        }
       }
       protectedSettings: {
         configurationArguments: {
-          adminCreds: {
-            UserName: adminusername
-            Password: adminpassword
-          }
+            parameterOfTypePSCredential1: {
+                userName: adminusername
+                password: adminpassword
+            }
         }
       }
     }
-    dependsOn: [
+      dependsOn: [
       virtualMachineName_resource
     ]
   }

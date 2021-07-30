@@ -4,7 +4,8 @@ configuration HCIHyperVHost
 
      param (
 
-           [string]$NodeName = 'localhost'
+           [string]$NodeName = 'localhost',
+           [System.Management.Automation.PSCredential]$parameterOfTypePSCredential1
 
      )
 
@@ -16,6 +17,8 @@ configuration HCIHyperVHost
 
                 Name='Hyper-V'
 
+                IncludeAllSubFeature = $true
+
            }
 
            WindowsFeature 'Hyper-V-Powershell' {
@@ -23,6 +26,8 @@ configuration HCIHyperVHost
                 Ensure='Present'
 
                 Name='Hyper-V-Powershell'
+
+                IncludeAllSubFeature = $true
 
            }
 
