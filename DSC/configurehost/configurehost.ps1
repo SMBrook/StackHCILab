@@ -9,6 +9,8 @@ configuration HCIHyperVHost
 
      )
 
+     Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+
      node $NodeName {
 
            WindowsFeature 'Hyper-V' {
