@@ -171,6 +171,7 @@
         configuration: {
           url: 'https://github.com/SMBrook/StackHCILab/blob/main/DSC/configurehost.zip?raw=true'
           script: 'configurehost.ps1'
+          function: 'HCIHyperVHost'
         }
       }
       protectedSettings: {
